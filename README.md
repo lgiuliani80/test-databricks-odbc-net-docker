@@ -17,6 +17,8 @@ This application demonstrates ODBC connectivity to Databricks SQL Warehouse from
   - Hostname and Port
   - HTTP path to the warehouse
   - Personal access token
+- For local execution: Windows or Linux OS with pre-installed Simba Spark ODBC drivers pre-installed
+- For containerized execution: Linux x64 [other architectures are not supported as the provided .deb file is specific per x64]
 
 ## Required Environment Variables
 
@@ -243,4 +245,4 @@ This project is provided as-is for testing and evaluation purposes.
 
 ## Author
 
-Luigi Giuliani ([@lgiuliani80](https://github.com/lgiuliani80))
+Luca Giuliani ([@lgiuliani80](https://github.com/lgiuliani80), giulianil@microsoft.com)
