@@ -8,6 +8,7 @@ using var connection = new OdbcConnection(connectionString);
 
 try
 {
+    Console.WriteLine("Connecting to Databricks SQL Warehouse...");
     connection.Open();
     Console.WriteLine("Connected to Databricks SQL Warehouse.");
     Console.WriteLine("Type SQL and press Enter.");
@@ -20,45 +21,106 @@ catch (Exception ex)
     return;
 }
 
-while (true)
+
+if (args.Contains("--interactive"))
 {
-    Console.Write("dbsql> ");
-    string? input = Console.ReadLine();
-
-    if (string.IsNullOrWhiteSpace(input))
-        continue;
-
-    input = input.Trim();
-
-    if (input.Equals("quit", StringComparison.OrdinalIgnoreCase) ||
-        input.Equals("exit", StringComparison.OrdinalIgnoreCase))
+    while (true)
     {
-        Console.WriteLine("Goodbye.");
-        break;
+        Console.Write("dbsql> ");
+        string? input = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(input))
+            continue;
+
+        input = input.Trim();
+
+        if (input.Equals("quit", StringComparison.OrdinalIgnoreCase) ||
+            input.Equals("exit", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine("Goodbye.");
+            break;
+        }
+
+        try
+        {
+            using var command = new OdbcCommand(input, connection);
+
+            // Try reader first (SELECT, SHOW, DESCRIBE, etc.)
+            using var reader = command.ExecuteReader();
+
+            PrintResultSet(reader);
+        }
+        catch (OdbcException ex)
+        {
+            Console.WriteLine("ODBC Error:");
+            Console.WriteLine(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error:");
+            Console.WriteLine(ex.Message);
+        }
     }
-
-    try
+}
+else
+{
+    Console.WriteLine("Executing test queries...\n");
+    string[] testQueries = new[]
     {
-        using var command = new OdbcCommand(input, connection);
+        "SELECT current_database() AS current_db",
+        "SHOW TABLES",
+        "SELECT rand()",
+        "SELECT COUNT(*) AS total_rows FROM information_schema.tables",
+        "SELECT cos(rand()) AS cos_random_value, current_timestamp() as now_time"
+    };
 
-        // Try reader first (SELECT, SHOW, DESCRIBE, etc.)
-        using var reader = command.ExecuteReader();
+    var rnd = new Random();
+    var cnt = 0;
 
-        PrintResultSet(reader);
-    }
-    catch (OdbcException ex)
+    while (true)
     {
-        Console.WriteLine("ODBC Error:");
-        Console.WriteLine(ex.Message);
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine("Error:");
-        Console.WriteLine(ex.Message);
+        cnt++;
+
+        Console.WriteLine($"\n--- Test Query Cycle #{cnt} ---\n");
+
+        foreach (var query in testQueries)
+        {
+            Console.WriteLine($">>> {query}");
+            try
+            {
+                using var command = new OdbcCommand(query, connection);
+                using var reader = command.ExecuteReader();
+                PrintResultSet(reader);
+            }
+            catch (OdbcException ex)
+            {
+                Console.WriteLine("ODBC Error:");
+                Console.WriteLine(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error:");
+                Console.WriteLine(ex.Message);
+            }
+
+            // Wait a random time between 1 and 3/4 second before next query 
+            Thread.Sleep(rnd.Next(1, 750));
+        }
+
+        var waitTime = rnd.Next(1000, 100000);
+
+        Console.WriteLine($"--- End of Cycle #{cnt}. Waiting {waitTime} ms before next cycle ---\n");
+
+        // Wait a bit longer between full cycles
+        Thread.Sleep(waitTime);
     }
 }
 
+Console.WriteLine("Closing connection.");
+
 connection.Close();
+
+Console.WriteLine("Connection closed. Program ended.");
 
 static void PrintResultSet(OdbcDataReader reader)
 {

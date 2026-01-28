@@ -34,6 +34,4 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-ENV ODBC_CS="Driver={Simba Spark ODBC Driver};Host=dbc-59fd3c91-a3c5.cloud.databricks.com;Port=443;HTTPPath=/sql/1.0/warehouses/3e3c50d93a8e8c98;SSL=1;ThriftTransport=2;AuthMech=3;UID=token;PWD=dapi3fd5354a1d762612347f8a197904f511"
-
 ENTRYPOINT ["dotnet", "TestDatabricksODBC.dll"]
